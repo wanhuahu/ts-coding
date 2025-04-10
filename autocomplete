@@ -1,0 +1,102 @@
+// Solution 1: simple
+/**
+ * Autocomplete function that returns words from a dictionary starting with a given prefix
+ * @param prefix The prefix to search for
+ * @param words Array of words to search through
+ * @returns Array of words that start with the prefix
+ */
+function autocomplete(prefix: string, words: string[]): string[] {
+    if (!prefix || prefix.length === 0) {
+        return []; // or return words.slice() if you want all words when prefix is empty
+    }
+
+    const lowerPrefix = prefix.toLowerCase();
+    
+    return words.filter(word => {
+        const lowerWord = word.toLowerCase();
+        return lowerWord.startsWith(lowerPrefix);
+    });
+}
+
+// Example usage:
+const dictionary = ["Apple", "Banana", "Apricot", "Cherry", "applepie", "blueberry"];
+const prefix = "ap";
+
+const suggestions = autocomplete(prefix, dictionary);
+console.log(suggestions); // Output: ["Apple", "Apricot", "applepie"]
+
+// Solution 2: Trie
+class TrieNode {
+    children: Map<string, TrieNode>;
+    isEndOfWord: boolean;
+
+    constructor() {
+        this.children = new Map();
+        this.isEndOfWord = false;
+    }
+}
+
+class AutocompleteSystem {
+    private root: TrieNode;
+
+    constructor(words: string[]) {
+        this.root = new TrieNode();
+        this.buildTrie(words);
+    }
+
+    private buildTrie(words: string[]): void {
+        for (const word of words) {
+            this.insert(word.toLowerCase());
+        }
+    }
+
+    private insert(word: string): void {
+        let node = this.root;
+        for (const char of word) {
+            if (!node.children.has(char)) {
+                node.children.set(char, new TrieNode());
+            }
+            node = node.children.get(char)!;
+        }
+        node.isEndOfWord = true;
+    }
+
+    public autocomplete(prefix: string): string[] {
+        const lowerPrefix = prefix.toLowerCase();
+        let node = this.root;
+        
+        // Traverse to the end of the prefix
+        for (const char of lowerPrefix) {
+            if (!node.children.has(char)) {
+                return [];
+            }
+            node = node.children.get(char)!;
+        }
+        
+        // Collect all words from this node
+        return this.collectWords(node, lowerPrefix);
+    }
+
+    private collectWords(node: TrieNode, prefix: string): string[] {
+        const words: string[] = [];
+        
+        if (node.isEndOfWord) {
+            words.push(prefix);
+        }
+        
+        for (const [char, childNode] of node.children) {
+            words.push(...this.collectWords(childNode, prefix + char));
+        }
+        
+        return words;
+    }
+}
+
+// Example usage:
+const dictionary = ["Apple", "Banana", "Apricot", "Cherry", "applepie", "blueberry"];
+const autocompleteSystem = new AutocompleteSystem(dictionary);
+
+console.log(autocompleteSystem.autocomplete("ap")); // ["apple", "apricot", "applepie"]
+console.log(autocompleteSystem.autocomplete("b"));  // ["banana", "blueberry"]
+
+// Time Complexity: O(k) lookup time where k is the length of the prefix, followed by O(n) collection of all words under that prefix.
